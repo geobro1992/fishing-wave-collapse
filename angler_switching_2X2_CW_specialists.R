@@ -153,307 +153,76 @@ for (t in 1:(years - 1)) {
 
 
 
-# plot 2X2 sims to show the effect of fishing and competition
 
 # color code by latitude
 colo = colorRampPalette(c("blue", "red"))
 
 
-png("2x2_cw_specialists.png", width = 6, height = 6, units = "in", res = 600)
+# comparing scenarios figure
 
-par(mfrow = c(2, 2), mar = c(2,2,2,2), oma = c(3, 3, 3, 3))
-
-for (j in 1:length(ss[,1])) {
+fig_label <- function(text, region="figure", pos="topleft", cex=NULL, ...) {
   
-  plot(1:years, N.cold[1,j,], type = "l", ylim = c(0,1), col = "blue", lwd = 2, xaxt="n", yaxt="n", ylab = "", xlab = "")
-  points(t_crit1.years[1], N.cold[1,j,t_crit1.years[1]], col = colo(10)[1], pch = 19, cex = 1.5)
+  region <- match.arg(region, c("figure", "plot", "device"))
+  pos <- match.arg(pos, c("topleft", "top", "topright", 
+                          "left", "center", "right", 
+                          "bottomleft", "bottom", "bottomright"))
   
-  for (i in 2:lat) {
+  if(region %in% c("figure", "device")) {
+    ds <- dev.size("in")
+    # xy coordinates of device corners in user coordinates
+    x <- grconvertX(c(0, ds[1]), from="in", to="user")
+    y <- grconvertY(c(0, ds[2]), from="in", to="user")
     
-    lines(1:years, N.cold[i,j,], col = colo(10)[i], lwd = 2)
-    points(t_crit1.years[i], N.cold[i,j,t_crit1.years[i]], col = colo(10)[i], pch = 19, cex = 1.5)
+    # fragment of the device we use to plot
+    if(region == "figure") {
+      # account for the fragment of the device that 
+      # the figure is using
+      fig <- par("fig")
+      dx <- (x[2] - x[1])
+      dy <- (y[2] - y[1])
+      x <- x[1] + dx * fig[1:2]
+      y <- y[1] + dy * fig[3:4]
+    } 
   }
-}
-
-mtext(text = "No Competition",side = 3,line = 0,outer = TRUE, cex = 1.5, adj = 0.15)
-mtext(text = "Competition",side = 3,line = 0,outer = TRUE, cex = 1.5, adj = 0.8)
-mtext(text = "Fishing",side = 2,line = -0.5,outer = TRUE, cex = 1.5, adj = 0.2)
-mtext(text = "No fishing",side = 2,line = 1,outer = TRUE, cex = 1.5, adj = 0.85)
-
-dev.off()
-
-
-
-
-par(mfrow = c(2, 2), mar = c(2,2,2,2), oma = c(3, 3, 3, 3))
-
-for (j in 1:length(ss[,1])) {
   
-  plot(1:years, N.warm[1,j,], type = "l", ylim = c(0,1), col = "blue", lwd = 2, xaxt="n", yaxt="n", ylab = "", xlab = "")
-  
-  for (i in 2:lat) {
-    
-    lines(1:years, N.warm[i,j,], col = colo(10)[i], lwd = 2)
-    
+  # much simpler if in plotting region
+  if(region == "plot") {
+    u <- par("usr")
+    x <- u[1:2]
+    y <- u[3:4]
   }
+  
+  sw <- strwidth(text, cex=cex) * 60/100
+  sh <- strheight(text, cex=cex) * 60/100
+  
+  x1 <- switch(pos,
+               topleft     =x[1] + sw, 
+               left        =x[1] + sw,
+               bottomleft  =x[1] + sw,
+               top         =(x[1] + x[2])/2,
+               center      =(x[1] + x[2])/2,
+               bottom      =(x[1] + x[2])/2,
+               topright    =x[2] - sw,
+               right       =x[2] - sw,
+               bottomright =x[2] - sw)
+  
+  y1 <- switch(pos,
+               topleft     =y[2] - sh,
+               top         =y[2] - sh,
+               topright    =y[2] - sh,
+               left        =(y[1] + y[2])/2,
+               center      =(y[1] + y[2])/2,
+               right       =(y[1] + y[2])/2,
+               bottomleft  =y[1] + sh,
+               bottom      =y[1] + sh,
+               bottomright =y[1] + sh)
+  
+  old.par <- par(xpd=NA)
+  on.exit(par(old.par))
+  
+  text(x1, y1, text, cex=cex, ...)
+  return(invisible(c(x,y)))
 }
-
-mtext(text = "No Competition",side = 3,line = 0,outer = TRUE, cex = 1.5, adj = 0.1)
-mtext(text = "Competition",side = 3,line = 0,outer = TRUE, cex = 1.5, adj = 0.9)
-mtext(text = "Fishing",side = 2,line = 1,outer = TRUE, cex = 1.5, adj = 0.1)
-mtext(text = "No fishing",side = 2,line = 1,outer = TRUE, cex = 1.5, adj = 0.9)
-
-
-
-###########################
-# effort and early collapse
-
-ec = vector()
-
-for (i in 1:lat) {
-  
-  ec[i] = t_crit1.years[i] - which.max(N.cold[i,3,])
-  
-}
-
-
-
-png("chasing_effort.png", width = 7, height = 8, units = "in", res = 600)
-
-
-mat <- matrix(c(0,1,1,0,
-                2,2,3,3), nrow = 2, byrow = TRUE)
-
-op <- par(cex.main = 1.5, mar = c(5, 6, 2, 2) + 0.1, mgp = c(3.5, 1, 0), cex.lab = 1.5 , font.lab = 2, cex.axis = 1.3, bty = "n", las = 1)
-layout(mat)
-
-plot(1:years, N.cold[1,3,], type = "l", xlim = c(0,100), ylim = c(0,1), col = "blue", lwd = 2, ylab = "", xlab = "", axes = FALSE)
-points(t_crit1.years[1]-1, N.cold[1,3,99], col = colo(10)[1], pch = 19, cex = 1.5)
-
-for (i in 2:lat) {
-  
-  lines(1:years, N.cold[i,3,], col = colo(10)[i], lwd = 2)
-  points(t_crit1.years[i], N.cold[i,3,t_crit1.years[i]], col = colo(10)[i], pch = 19, cex = 1.5)
-}
-
-
-axis(1)
-axis(2) 
-
-par(las = 0)
-mtext("Time", side = 1, line = 2.5, cex = 1.5)
-mtext("Abundance", side = 2, line = 3.7, cex = 1.5)
-
-
-
-
-plot(1:years, E.cold[1,3,], type = "l", xlim = c(0,100), ylim = c(0,20), col = "blue", lwd = 2, ylab = "", xlab = "", axes = FALSE)
-
-for (i in 2:lat) {
-  
-  lines(1:years, E.cold[i,3,], col = colo(10)[i], lwd = 2)
-
-  }
-
-
-axis(1)
-axis(2) 
-
-par(las = 0)
-mtext("Time", side = 1, line = 2.5, cex = 1.5)
-mtext("Fishing Effort", side = 2, line = 3.7, cex = 1.5)
-
-  
-
-plot(1:lat, rev(ec), xlim = c(0,10), ylim = c(15, 40), xlab = "", ylab = "", axes = FALSE,
-     pch = 21, bg = rev(colo(10)), cex = 2, col = "black")
-
-axis(1)
-axis(2)
-
-par(las = 0)
-mtext("Latitude", 1, line = 2.5, cex = 1.5)
-mtext(expression("Early Decline "*(T[crit] - T[max])), 2, line = 3, cex = 1.5, las = 0)
-
-abline(h = mean(ec), lty = 2, lwd = 2)
-
-
-dev.off()
-
-
-###########################
-# competititon and early collapse
-
-
-ec = vector()
-
-for (i in 1:lat) {
-  
-  ec[i] = t_crit1.years[i] - which.max(N.cold[i,2,])
-  
-}
-
-
-
-
-png("chasing_competition.png", width = 7, height = 8, units = "in", res = 600)
-
-
-mat <- matrix(c(0,1,1,0,
-                2,2,3,3), nrow = 2, byrow = TRUE)
-
-op <- par(cex.main = 1.5, mar = c(5, 6, 2, 2) + 0.1, mgp = c(3.5, 1, 0), cex.lab = 1.5 , font.lab = 2, cex.axis = 1.3, bty = "n", las = 1)
-layout(mat)
-
-plot(1:years, N.cold[1,2,], type = "l", xlim = c(0,100), ylim = c(0,1), col = "blue", lwd = 2, ylab = "", xlab = "", axes = FALSE)
-points(t_crit1.years[1]-1, N.cold[1,2,99], col = colo(10)[1], pch = 19, cex = 1.5)
-
-for (i in 2:lat) {
-  
-  lines(1:years, N.cold[i,2,], col = colo(10)[i], lwd = 2)
-  points(t_crit1.years[i], N.cold[i,2,t_crit1.years[i]], col = colo(10)[i], pch = 19, cex = 1.5)
-}
-
-
-axis(1)
-axis(2) 
-
-par(las = 0)
-mtext("Time", side = 1, line = 3, cex = 1.5)
-mtext("Abundance", side = 2, line = 3.7, cex = 1.5)
-
-
-
-
-plot(1:years, N.warm[1,2,], type = "l", xlim = c(0,100), ylim = c(0,1), col = "blue", lwd = 2, ylab = "", xlab = "", axes = FALSE)
-
-for (i in 2:lat) {
-  
-  lines(1:years, N.warm[i,2,], col = colo(10)[i], lwd = 2)
-  
-}
-
-
-axis(1)
-axis(2) 
-
-par(las = 0)
-mtext("Time", side = 1, line = 3, cex = 1.5)
-mtext("Competitor", side = 2, line = 3.7, cex = 1.5)
-
-
-
-plot(1:lat, rev(ec), xlim = c(0,10), ylim = c(20, 40), xlab = "", ylab = "", axes = FALSE,
-     pch = 21, bg = rev(colo(10)), cex = 2, col = "black")
-
-axis(1)
-axis(2)
-
-par(las = 0)
-mtext("Latitude", 1, line = 3, cex = 1.5)
-mtext(expression("Early Decline "*(T[crit] - T[max])), 2, line = 3, cex = 1.5, las = 0)
-
-abline(h = mean(ec), lty = 2, lwd = 2)
-
-
-dev.off()
-
-
-
-###########################
-# both and early collapse
-
-
-ec = vector()
-
-for (i in 1:lat) {
-  
-  ec[i] = t_crit1.years[i] - which.max(N.cold[i,4,])
-  
-}
-
-
-
-
-png("chasing_both_cw_specialists.png", width = 7, height = 8, units = "in", res = 600)
-
-
-mat <- matrix(c(0,0,1,1,0,0,
-                2,2,3,3,4,4), nrow = 2, byrow = TRUE)
-
-op <- par(cex.main = 1.5, mar = c(5, 6, 2, 2) + 0.1, mgp = c(3.5, 1, 0), cex.lab = 1.5 , font.lab = 2, cex.axis = 1.3, bty = "n", las = 1)
-layout(mat)
-
-plot(1:years, N.cold[1,4,], type = "l", xlim = c(0,100), ylim = c(0,1), col = "blue", lwd = 2, ylab = "", xlab = "", axes = FALSE)
-points(t_crit1.years[1]-1, N.cold[1,4,99], col = colo(10)[1], pch = 19, cex = 1.5)
-
-for (i in 2:lat) {
-  
-  lines(1:years, N.cold[i,4,], col = colo(10)[i], lwd = 2)
-  points(t_crit1.years[i], N.cold[i,4,t_crit1.years[i]], col = colo(10)[i], pch = 19, cex = 1.5)
-}
-
-
-axis(1)
-axis(2) 
-
-par(las = 0)
-mtext("Time", side = 1, line = 3, cex = 1.5)
-mtext("Abundance", side = 2, line = 3.7, cex = 1.5)
-
-
-
-
-plot(1:years, N.warm[1,4,], type = "l", xlim = c(0,100), ylim = c(0,1), col = "blue", lwd = 2, ylab = "", xlab = "", axes = FALSE)
-
-for (i in 2:lat) {
-  
-  lines(1:years, N.warm[i,4,], col = colo(10)[i], lwd = 2)
-  
-}
-
-
-axis(1)
-axis(2) 
-
-par(las = 0)
-mtext("Time", side = 1, line = 3, cex = 1.5)
-mtext("Competitor", side = 2, line = 3.7, cex = 1.5)
-
-
-
-plot(1:years, E.warm[1,4,], type = "l", xlim = c(0,100), ylim = c(0,20), col = "blue", lwd = 2, ylab = "", xlab = "", axes = FALSE)
-
-for (i in 2:lat) {
-  
-  lines(1:years, E.warm[i,4,], col = colo(10)[i], lwd = 2)
-  
-}
-
-
-axis(1)
-axis(2) 
-
-par(las = 0)
-mtext("Time", side = 1, line = 3, cex = 1.5)
-mtext("Fishing Effort", side = 2, line = 3.7, cex = 1.5)
-
-
-
-plot(1:lat, rev(ec), xlim = c(0,10), ylim = c(0, 40), xlab = "", ylab = "", axes = FALSE,
-     pch = 21, bg = rev(colo(10)), cex = 2, col = "black")
-
-axis(1)
-axis(2)
-
-par(las = 0)
-mtext("Latitude", 1, line = 3, cex = 1.5)
-mtext(expression("Early Decline "*(T[crit] - T[max])), 2, line = 3, cex = 1.5, las = 0)
-
-abline(h = mean(ec), lty = 2, lwd = 2)
-
-
-dev.off()
 
 
 ###################3
@@ -462,7 +231,7 @@ dev.off()
 
 png("ecological_methods_fig.png", width = 6, height = 6, units = "in", res = 600)
 
-par(mar = c(2,2,2,2), oma = c(3,3,3,3))
+par(mar = c(3,3,3,3), oma = c(3,3,3,3))
 
 layout(matrix(c(1,1,2,3), 2, 2, byrow = T)) 
 
@@ -494,6 +263,9 @@ arrows(-7, 5, -7, 25, length = 0.15, angle = 30, code = 2, lwd = 2,
 arrows(109, 25, 109, 5, length = 0.15, angle = 30, code = 2, lwd = 2,
        col = par("fg"), lty = NULL, oma = T)
 
+mtext(LETTERS[1], cex=2, outer = F, side = 3, line = 1) 
+
+
 # temp sensitivity
 ts = seq(0, 30, length.out = 1000)
 
@@ -508,6 +280,7 @@ mtext(text = "Pop. growth rate (r)",side = 2,line = 1, cex = 1.2)
 text(8, 0.13, "cold-adapted\nspecies", col = "dark blue", cex = 0.8)
 text(22, 0.13, "warm-adapted\nspecies", col = "dark red", cex = 0.8)
 
+mtext(LETTERS[2], cex=2, outer = F, side = 3, line = 1) 
 
 # competition function
 N2s = seq(0, 1, length.out = 100)
@@ -530,7 +303,12 @@ text(1.15, 0.7, expression(rho == 0.3), col = colo(6)[4], cex = 0.8)
 text(1.15, 0.6, expression(rho == 0.4), col = colo(6)[5], cex = 0.8)
 text(1.15, 0.5, expression(rho == 0.5), col = colo(6)[6], cex = 0.8)
 
+mtext(LETTERS[3], cex=2, outer = F, side = 3, line = 1) 
+
 dev.off()
+
+
+
 
 
 
@@ -546,7 +324,7 @@ mat <- matrix(c(1,2,3,4,
                 9,10,11,12,
                 13,14,15,16), nrow = 4, byrow = F)
 
-op <- par(cex.main = 1.5, mar = c(5, 6, 2, 2) + 0.1, mgp = c(3.5, 1, 0), cex.lab = 1.5 , font.lab = 2, cex.axis = 1.3, bty = "n", las = 1)
+op <- par(cex.main = 1.5, mar = c(5, 6, 2, 2) + 0.1, mgp = c(4.5, 1, 0), cex.lab = 1.5 , font.lab = 2, cex.axis = 1.3, bty = "n", las = 1, oma = c(1,1,5,1))
 layout(mat)
 
 
@@ -577,18 +355,21 @@ axis(1)
 axis(2) 
 
 par(las = 0)
-mtext("Time", side = 1, line = 2.5, cex = 1.5)
-mtext("Abundance", side = 2, line = 3.7, cex = 1.5)
-
+mtext("Time", side = 1, line = 2.5, cex = 1.2)
+mtext("Cold-adapted\n Abundance", side = 2, line = 3.7, cex = 1.2)
+fig_label(paste("  ", LETTERS[1]), cex=2, region="plot") 
+mtext("no fishing,\n no competitor", side = 3, line = 2.5, cex = 1.5)
 
 
 plot.new()
 plot.window( xlim=c(-5,5), ylim=c(-5,5) )
 text(0,0,"No Fishing", cex=2)
+fig_label(paste("  ", LETTERS[5]), cex=2, region="plot") 
 
 plot.new()
 plot.window( xlim=c(-5,5), ylim=c(-5,5) )
 text(0,0,"No Competitor", cex=2)
+fig_label(paste("  ", LETTERS[9]), cex=2, region="plot") 
 
 
 plot(1:lat, rev(ec), xlim = c(0,10), ylim = c(0, 40), xlab = "", ylab = "", axes = FALSE,
@@ -598,8 +379,9 @@ axis(1)
 axis(2)
 
 par(las = 0)
-mtext("Latitude", 1, line = 2.5, cex = 1.5)
-mtext("Premature Decline", 2, line = 3, cex = 1.5, las = 0)
+mtext("Latitude", 1, line = 2.5, cex = 1.2)
+mtext("Premature Decline", 2, line = 3, cex = 1.2, las = 0)
+fig_label(paste("  ", LETTERS[13]), cex=2, region="plot") 
 
 
 
@@ -630,8 +412,10 @@ axis(1)
 axis(2) 
 
 par(las = 0)
-mtext("Time", side = 1, line = 2.5, cex = 1.5)
-mtext("Abundance", side = 2, line = 3.7, cex = 1.5)
+mtext("Time", side = 1, line = 2.5, cex = 1.2)
+mtext("Cold-adapted\n Abundance", side = 2, line = 3.7, cex = 1.2)
+fig_label(paste("  ", LETTERS[2]), cex=2, region="plot") 
+mtext("fishing,\n no competitor", side = 3, line = 2.5, cex = 1.5)
 
 
 
@@ -649,13 +433,15 @@ axis(1)
 axis(2) 
 
 par(las = 0)
-mtext("Time", side = 1, line = 2.5, cex = 1.5)
-mtext("Fishing Effort", side = 2, line = 3.7, cex = 1.5)
+mtext("Time", side = 1, line = 2.5, cex = 1.2)
+mtext("Fishing Effort", side = 2, line = 3.7, cex = 1.2)
+fig_label(paste("  ", LETTERS[6]), cex=2, region="plot") 
 
 
 plot.new()
 plot.window( xlim=c(-5,5), ylim=c(-5,5) )
 text(0,0,"No Competitor", cex=2)
+fig_label(paste("  ", LETTERS[10]), cex=2, region="plot") 
 
 
 plot(1:lat, rev(ec), xlim = c(0,10), ylim = c(0, 40), xlab = "", ylab = "", axes = FALSE,
@@ -665,10 +451,11 @@ axis(1)
 axis(2)
 
 par(las = 0)
-mtext("Latitude", 1, line = 2.5, cex = 1.5)
-mtext("Premature Decline", 2, line = 3, cex = 1.5, las = 0)
+mtext("Latitude", 1, line = 2.5, cex = 1.2)
+mtext("Premature Decline", 2, line = 3, cex = 1.2, las = 0)
 
 abline(h = mean(ec), lty = 2, lwd = 2)
+fig_label(paste("  ", LETTERS[14]), cex=2, region="plot") 
 
 
 
@@ -699,14 +486,17 @@ axis(1)
 axis(2) 
 
 par(las = 0)
-mtext("Time", side = 1, line = 3, cex = 1.5)
-mtext("Abundance", side = 2, line = 3.7, cex = 1.5)
+mtext("Time", side = 1, line = 3, cex = 1.2)
+mtext("Cold-adapted\n Abundance", side = 2, line = 3.7, cex = 1.2)
+fig_label(paste("  ", LETTERS[3]), cex=2, region="plot") 
+mtext("competitor,\n no fishing", side = 3, line = 2.5, cex = 1.5)
 
 
 
 plot.new()
 plot.window( xlim=c(-5,5), ylim=c(-5,5) )
 text(0,0,"No Fishing", cex=2)
+fig_label(paste("  ", LETTERS[7]), cex=2, region="plot") 
 
 
 plot(1:years, N.warm[1,2,], type = "l", xlim = c(0,100), ylim = c(0,1), col = "blue", lwd = 2, ylab = "", xlab = "", axes = FALSE)
@@ -722,8 +512,9 @@ axis(1)
 axis(2) 
 
 par(las = 0)
-mtext("Time", side = 1, line = 3, cex = 1.5)
-mtext("Competitor", side = 2, line = 3.7, cex = 1.5)
+mtext("Time", side = 1, line = 3, cex = 1.2)
+mtext("Competitor\n Abundance", side = 2, line = 3.7, cex = 1.2)
+fig_label(paste("  ", LETTERS[11]), cex=2, region="plot") 
 
 
 
@@ -734,10 +525,11 @@ axis(1)
 axis(2)
 
 par(las = 0)
-mtext("Latitude", 1, line = 3, cex = 1.5)
-mtext("Premature Decline", 2, line = 3, cex = 1.5, las = 0)
+mtext("Latitude", 1, line = 3, cex = 1.2)
+mtext("Premature Decline", 2, line = 3, cex = 1.2, las = 0)
 
 abline(h = mean(ec), lty = 2, lwd = 2)
+fig_label(paste("  ", LETTERS[15]), cex=2, region="plot") 
 
 
 ###########################
@@ -768,8 +560,10 @@ axis(1)
 axis(2) 
 
 par(las = 0)
-mtext("Time", side = 1, line = 3, cex = 1.5)
-mtext("Abundance", side = 2, line = 3.7, cex = 1.5)
+mtext("Time", side = 1, line = 3, cex = 1.2)
+mtext("Cold-adapted\n Abundance", side = 2, line = 3.7, cex = 1.2)
+fig_label(paste("  ", LETTERS[4]), cex=2, region="plot") 
+mtext("both fishing\n and competitor", side = 3, line = 2.5, cex = 1.5)
 
 
 
@@ -788,8 +582,9 @@ axis(1)
 axis(2) 
 
 par(las = 0)
-mtext("Time", side = 1, line = 3, cex = 1.5)
-mtext("Fishing Effort", side = 2, line = 3.7, cex = 1.5)
+mtext("Time", side = 1, line = 3, cex = 1.2)
+mtext("Fishing Effort", side = 2, line = 3.7, cex = 1.2)
+fig_label(paste("  ", LETTERS[8]), cex=2, region="plot") 
 
 
 plot(1:years, N.warm[1,4,], type = "l", xlim = c(0,100), ylim = c(0,1), col = "blue", lwd = 2, ylab = "", xlab = "", axes = FALSE)
@@ -805,8 +600,9 @@ axis(1)
 axis(2) 
 
 par(las = 0)
-mtext("Time", side = 1, line = 3, cex = 1.5)
-mtext("Competitor", side = 2, line = 3.7, cex = 1.5)
+mtext("Time", side = 1, line = 3, cex = 1.2)
+mtext("Competitor\n Abundance", side = 2, line = 3.7, cex = 1.2)
+fig_label(paste("  ", LETTERS[12]), cex=2, region="plot") 
 
 
 
@@ -817,12 +613,45 @@ axis(1)
 axis(2)
 
 par(las = 0)
-mtext("Latitude", 1, line = 3, cex = 1.5)
-mtext("Premature Decline", 2, line = 3, cex = 1.5, las = 0)
+mtext("Latitude", 1, line = 3, cex = 1.2)
+mtext("Premature Decline", 2, line = 3, cex = 1.2, las = 0)
 
 abline(h = mean(ec), lty = 2, lwd = 2)
+fig_label(paste("  ", LETTERS[16]), cex=2, region="plot") 
 
 
 dev.off()
 
 
+
+
+####################################
+# cummulative extinctions over time
+
+c.ex = data.frame(n = rep(10:1, 2), scenario = rev(sort(rep(c("fishing", "no fishing"), 10))), y = NA)
+
+# no fishing or competition
+
+for (i in 1:lat) {
+  
+  c.ex[i, "y"] = t_crit1.years[i] 
+  c.ex[i+10, "y"] = which.max(N.cold[i,3,])
+
+}
+
+c.ex$scenario = as.factor(c.ex$scenario)
+
+library(ggplot2)
+ggplot(c.ex, aes(y, n, color = scenario))+
+  geom_line() +
+  xlab("Year") +
+  ylab("Cumulative Extinction") +
+  theme_classic()
+
+
+ggplot(c.ex, aes(x = y, y = n, group = scenario, 
+                     color = scenario)) +
+  geom_step(linewidth = 1.5, direction = "hv") +
+  geom_point(size = 3) + 
+  xlim(0, 100) +
+  theme_classic()
